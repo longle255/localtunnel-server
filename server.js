@@ -43,11 +43,10 @@ function maybe_bounce(req, res, opt, bounce) {
     }
 
     var subdomain = tldjs.getSubdomain(hostname);
-
-    if (opt.sub && (subdomain.indexOf('.' + opt.sub) > -1)) {
-        subdomain = subdomain.substr(0, subdomain.indexOf('.' + opt.sub));
-    }
-    console.log(subdomain);
+    var reg = '([.a-z0-9/-]+)' + '\\.' + opt.sub;
+    
+    subdomain = subdomain.match(reg, /g/) ? subdomain.match(reg, /g/)[1] : subdomain;
+    
     if (!subdomain || (opt.sub && (subdomain === opt.sub))) {
         return false;
     }
@@ -216,7 +215,6 @@ module.exports = function(opt) {
             info.url = url;
             res.json(info);
         });
-
     });
 
     app.use(function(err, req, res, next) {
