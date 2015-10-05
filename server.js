@@ -34,7 +34,8 @@ var stats = {
     tunnels: 0
 };
 
-function maybe_bounce(req, res, bounce) {
+function maybe_bounce(req, res, opt, bounce) {
+
     // without a hostname, we won't know who the request is for
     var hostname = req.headers.host;
     if (!hostname) {
@@ -42,7 +43,12 @@ function maybe_bounce(req, res, bounce) {
     }
 
     var subdomain = tldjs.getSubdomain(hostname);
-    if (!subdomain) {
+
+    if (opt.sub && (subdomain.indexOf('.' + opt.sub) > -1)) {
+        subdomain = subdomain.substr(0, subdomain.indexOf('.' + opt.sub));
+    }
+    console.log(subdomain);
+    if (!subdomain || (opt.sub && (subdomain === opt.sub))) {
         return false;
     }
 
@@ -91,7 +97,11 @@ function maybe_bounce(req, res, bounce) {
             return;
         }
 
-        var stream = bounce(socket, { headers: { connection: 'close' } });
+        var stream = bounce(socket, {
+            headers: {
+                connection: 'close'
+            }
+        });
 
         stream.on('error', function(err) {
             socket.destroy();
@@ -190,7 +200,7 @@ module.exports = function(opt) {
         var req_id = req.param('req_id');
 
         // limit requested hostnames to 20 characters
-        if (! /^[a-z0-9]{4,20}$/.test(req_id)) {
+        if (!/^[a-z0-9]{4,20}$/.test(req_id)) {
             var err = new Error('Invalid subdomain. Subdomains must be lowercase and between 4 and 20 alphanumeric characters.');
             err.statusCode = 403;
             return next(err);
@@ -225,7 +235,7 @@ module.exports = function(opt) {
         debug('request %s', req.url);
 
         // if we should bounce this request, then don't send to our server
-        if (maybe_bounce(req, res, bounce)) {
+        if (maybe_bounce(req, res, opt, bounce)) {
             return;
         };
 
